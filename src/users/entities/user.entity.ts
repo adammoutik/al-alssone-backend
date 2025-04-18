@@ -28,6 +28,9 @@ export class User {
     @Prop({type: String, required: true ,unique: true })
     email: string; // unique email address of the user
 
+    @Prop({type: String, required: true ,unique: true })
+    username: string; // unique email address of the user
+
     @Prop({type: String, required: true })
     password: string; // hashed password of the user
 

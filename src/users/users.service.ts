@@ -38,6 +38,19 @@ export class UsersService {
     
   }
 
+  async findOneByEmail(email: string) {
+    const user = await this.userModel.findOne({
+      email: email,
+    });
+    return user;
+  }
+  
+
+  async comparePassword(password: string, hash: string) {
+    const isMatch = await bcrypt.compare(password, hash);
+    return isMatch;
+  }
+
   findAll() {
     return `This action returns all users`;
   }
