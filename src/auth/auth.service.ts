@@ -43,8 +43,6 @@ export class AuthService {
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid password Or email');
       }
-      // Generate token and save it to the database
-
 
       let token = await this.tokenModel.findOne({userId:user._id});
       if(token){

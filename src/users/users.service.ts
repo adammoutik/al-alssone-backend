@@ -15,6 +15,7 @@ export class UsersService {
       throw new ConflictException('Missing required fields');
     }
     // The work factor defines the number of iterations the underlying hash function performs when hashing a password
+    
     const workFactory =  6;
     const password = createUserDto.password;
     
