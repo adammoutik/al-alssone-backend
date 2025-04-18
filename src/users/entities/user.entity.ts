@@ -1,7 +1,10 @@
-import { Prop, Schema } from "@nestjs/mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 
 
-
+export enum UserRole {
+    ADMIN = 'admin',
+    ASSISTANT = 'assistant',
+}
 
 @Schema({timestamps: true})
 export class User {
@@ -17,16 +20,18 @@ export class User {
   createdAt: Date
 }
     */
-   @Prop({type: String, required: true })
-    _id: string; // ObjectId
 
-    @Prop({type: String, required: true })
+
+//    @Prop({type: String })
+//     _id: string; // ObjectId
+
+    @Prop({type: String, required: true ,unique: true })
     email: string; // unique email address of the user
 
     @Prop({type: String, required: true })
     password: string; // hashed password of the user
 
-    @Prop({type: String, enum: ['admin', 'assistant'], required: true })
+    @Prop({type: String, enum: UserRole, required: true })
     role: string; // role of the user (admin or assistant)
 
     @Prop({type: Number, required: true })
@@ -40,3 +45,6 @@ export class User {
 
 
 }
+
+
+export const UserSchema = SchemaFactory.createForClass(User);
