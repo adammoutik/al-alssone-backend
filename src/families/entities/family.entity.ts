@@ -7,8 +7,8 @@ import { SchemaType, SchemaTypes } from "mongoose";
 @Schema({timestamps: true})
 export class Family {
 
-    @Prop({type:SchemaTypes.ObjectId, required: true })
-    _id: string;
+    // @Prop({type:SchemaTypes.ObjectId })
+    // _id: string;
 
     // members array of studens ids maximum 2
     @Prop({type: [SchemaTypes.ObjectId], ref: 'Student', required: true })

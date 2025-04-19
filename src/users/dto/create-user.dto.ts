@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
-export class CreateUserDto {
+export class CreateUserDto {    
+    @IsOptional()
   @IsString()
   readonly _id: string;
 

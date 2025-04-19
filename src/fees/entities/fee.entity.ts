@@ -2,13 +2,14 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { SchemaTypes } from "mongoose";
 
 
-enum FeeType {
+export enum FeeType {
     insurance = 'insurance',
     registration = 'registration',
     childcare = 'childcare',
-    education = 'education'
+    education = 'education',
+    transport = 'transport'
 }
-enum FeeCategory {
+export enum FeeCategory {
     maternelle = 'maternelle',
     primaire = 'primaire'
 }
@@ -24,8 +25,8 @@ export class Fee {
   createdAt: Date
 }
     */
-    @Prop({type: SchemaTypes.ObjectId, required: true })
-    _id: string; // ObjectId
+    // @Prop({type: SchemaTypes.ObjectId })
+    // _id: string; // ObjectId
 
     @Prop({type: String, enum: FeeType, required: true })
     type: FeeType; // insurance | registration | childcare | education
@@ -34,7 +35,10 @@ export class Fee {
     category: FeeCategory; // maternelle | primaire
 
     @Prop({type: Number, required: true })
-    amount: number; 
+    amount: number;
+
+    @Prop({type: Boolean, default: false })
+    isActive: boolean; 
 }
 
 
