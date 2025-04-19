@@ -15,6 +15,11 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractToken(request);
 
+    //exlude /auth/login route from authentication
+    if (request.url === '/auth/login') {
+      return true;
+    }
+
     if (!token) {
       throw new UnauthorizedException('No token provided');
     }

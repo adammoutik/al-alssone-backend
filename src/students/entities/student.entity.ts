@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Types } from "mongoose";
 
 
 @Schema({
@@ -20,7 +21,7 @@ export class Student {
 }
 */
 
-@Prop({type: String, required: true })
+@Prop({type: Types.ObjectId })
 _id: string; // ObjectId
 
 
@@ -42,11 +43,11 @@ niveau: string; // Level of the student (e.g., "Petite Section")
 @Prop({type: Date, required: true })
 registrationDate: Date; // Registration date of the student
 
-@Prop({type: String, required: true })
-familyId: string; // Reference to families
+@Prop({ type: Types.ObjectId, ref: 'Family' })
+familyId: string; // Reference to familie
 
-@Prop({type: Boolean, required: true })
-isChildCare: boolean; // Indicates if the student stays after 12h
+@Prop({type: Boolean, required: true,default:false })
+isGarde: boolean; // Indicates if the student stays after 12h
 
 @Prop({type: Number, required: true })
 parentPhoneNumber: number; // Parent's phone number

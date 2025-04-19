@@ -6,8 +6,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = new DocumentBuilder()
   .setTitle('School Payments API')
-  .setDescription('Management des paiements scolaires')
-  .addBearerAuth()
+  .setDescription('Gestions des paiements scolaires')
+  .addBearerAuth(
+    { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+    'JWT-auth'
+  )
   .build();
 
 const document = SwaggerModule.createDocument(app, config);
