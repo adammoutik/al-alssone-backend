@@ -52,4 +52,8 @@ export class StudentsService {
     }
     return deletedStudent;
   }
+
+  async findByFamily(familyId: string): Promise<Student[]> {
+    return this.studentModel.find({ familyId }).exec();
+  }
 }

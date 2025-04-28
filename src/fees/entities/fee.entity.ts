@@ -34,11 +34,17 @@ export class Fee {
     @Prop({type: String, enum: FeeCategory, required: true })
     category: FeeCategory; // maternelle | primaire
 
+    @Prop({type:String, required: false })
+    description: string;
+
     @Prop({type: Number, required: true })
     amount: number;
 
     @Prop({type: Boolean, default: false })
     isActive: boolean; 
+
+    @Prop({type: String, default:'Monthly'})
+    frequency:String;
 }
 
 

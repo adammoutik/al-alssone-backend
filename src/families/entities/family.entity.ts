@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { SchemaType, SchemaTypes } from "mongoose";
+import { SchemaTypes, Types } from "mongoose";
 
 
 
@@ -10,9 +10,17 @@ export class Family {
     // @Prop({type:SchemaTypes.ObjectId })
     // _id: string;
 
-    // members array of studens ids maximum 2
-    @Prop({type: [SchemaTypes.ObjectId], ref: 'Student', required: true })
-    members: string[];
+    @Prop({ required: true })
+  familyName: string;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Student' }] })
+  children: Types.ObjectId[];
+
+  @Prop({ default: false })
+  IsEligible: boolean;
+
+  @Prop({ default: 20 })
+  discountPercentage: number;
 
 }
 

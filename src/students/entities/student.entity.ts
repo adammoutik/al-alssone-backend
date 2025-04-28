@@ -21,8 +21,8 @@ export class Student {
 }
 */
 
-@Prop({type: Types.ObjectId })
-_id: string; // ObjectId
+// @Prop({type: Types.ObjectId })
+// _id: string; // ObjectId
 
 
 @Prop({type: String, required: true })
@@ -44,7 +44,7 @@ niveau: string; // Level of the student (e.g., "Petite Section")
 registrationDate: Date; // Registration date of the student
 
 @Prop({ type: Types.ObjectId, ref: 'Family' })
-familyId: string; // Reference to familie
+familyId?: string; // Reference to familie
 
 @Prop({type: Boolean, required: true,default:false })
 isGarde: boolean; // Indicates if the student stays after 12h
@@ -52,9 +52,10 @@ isGarde: boolean; // Indicates if the student stays after 12h
 @Prop({type: Number, required: true })
 parentPhoneNumber: number; // Parent's phone number
 
-@Prop({type: Date, default: Date.now })
-createdAt: Date; // Creation date of the student record
 
+
+@Prop({type: Boolean, default: true })
+isActive?: boolean; 
 
 
 }

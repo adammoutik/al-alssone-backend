@@ -43,4 +43,11 @@ export class FamiliesController {
   async remove(@Param('id') id: string) {
     return this.familiesService.remove(id);
   }
+
+  @Post(':id/children')
+  @ApiOperation({ summary: 'Add a child to a family' })
+  @ApiResponse({ status: 200, description: 'Child added successfully' })
+  addChild(@Param('id') id: string, @Body('studentId') studentId: string) {
+    return this.familiesService.addChild(id, studentId);
+  }
 }

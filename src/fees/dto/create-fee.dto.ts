@@ -19,6 +19,14 @@ export class CreateFeeDto {
   @IsEnum(['maternelle', 'primaire'])
   category: string;
 
+  @ApiProperty({
+    example: 'Annual registration fee',
+    description: 'Description of the fee',
+  })
+  @IsOptional()
+  Description: string;
+
+
   @ApiProperty({ example: 500, description: 'Amount in local currency' })
   @IsNumber()
   amount: number;
