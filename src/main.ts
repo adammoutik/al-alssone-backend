@@ -13,6 +13,12 @@ async function bootstrap() {
     'JWT-auth'
   )
   .build();
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
 
   app.useGlobalFilters(new HttpExceptionFilter());
 

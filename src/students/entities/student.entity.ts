@@ -2,6 +2,41 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Types } from "mongoose";
 
 
+/**
+ *  Nombre des niveaux : 
+ Maternelle : 
+TPS : 1 classe 
+PS : 1 classe
+MS : 1 Classe
+GS : 1 Classe
+ Primaire : 
+CP: 1 Classe 
+CE1 : 1Classe
+CE2 : 1 Classe
+CM1 : 1 Classe
+CM2 : 1Classe
+CE6 : 1Classe
+
+ * 
+ * 
+ * 
+ */
+
+
+
+export enum Niveau {
+    TPS = 'TPS',
+    PS = 'PS',
+    MS = 'MS',
+    GS = 'GS',
+    CP = 'CP',
+    CE1 = 'CE1',
+    CE2 = 'CE2',
+    CM1 = 'CM1',
+    CM2 = 'CM2',
+    CE6 = 'CE6'
+}
+
 @Schema({
   timestamps: true})
 export class Student {
@@ -21,6 +56,7 @@ export class Student {
 }
 */
 
+
 // @Prop({type: Types.ObjectId })
 // _id: string; // ObjectId
 
@@ -37,7 +73,7 @@ birthDate: Date; // Birth date of the student
 @Prop({type: String, enum: ['maternelle', 'primaire'], required: true })
 category: string; // Category of the student (maternelle or primaire)
 
-@Prop({type: String, required: true })
+@Prop({type: String,enum:Niveau , required: true })
 niveau: string; // Level of the student (e.g., "Petite Section")
 
 @Prop({type: Date, required: true })

@@ -4,9 +4,11 @@ import {
     IsOptional, 
     IsIn, 
     IsString,
-    IsNotEmpty 
+    IsNotEmpty, 
+    IsEnum
   } from 'class-validator';
   import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Niveau } from '../entities/student.entity';
   
   export class CreateStudentDto {
     
@@ -48,9 +50,9 @@ import {
     @ApiProperty({
       example: 'PA',
       description: 'Education level',
-    //   examples: ['Petite Section', 'Moyenne Section', 'CP', 'CE1']
-    })
+      enum: ['TPS', 'PS', 'MS', 'GS', 'CP', 'CE1', 'CE2', 'CM1', 'CM2', 'CE6']})
     @IsString()
+    @IsEnum(Niveau)
     niveau: string;
   
     @ApiPropertyOptional({
