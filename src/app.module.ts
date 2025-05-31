@@ -12,9 +12,11 @@ import { StudentsModule } from './students/students.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth/jwt-auth.guard';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [ConfigModule.forRoot({
+  imports: [ScheduleModule.forRoot(),
+    ConfigModule.forRoot({
     envFilePath: '.env',
     isGlobal: true,
   }),

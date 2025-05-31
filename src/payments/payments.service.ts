@@ -7,6 +7,7 @@ import { Student } from 'src/students/entities/student.entity';
 import { Family } from 'src/families/entities/family.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class PaymentsService {
@@ -35,6 +36,14 @@ export class PaymentsService {
     }, 0);
 
     // Todo: should add the discount check 
+
+    const family = await this.familyModel.findById(createPaymentDto.familyId);
+    if (family && family.discountChild) {
+      const discountChild = await this.studentModel.findById(family.discountChild);
+      if (discountChild) {
+        totalAmount = totalAmount * (1 - family.discountPercentage / 100);
+      }
+    }
 
     
 
@@ -114,6 +123,8 @@ export class PaymentsService {
       .exec();
   }
 
+  //update the status of the payment to unpaid if the fee is overdue
+  @Cron('0 0 * * *')
   async updatePaymentStatuses(): Promise<void> {
     const payments = await this.paymentModel.find().populate('feeId').exec();
     const now = new Date();
@@ -121,7 +132,6 @@ export class PaymentsService {
     for (const payment of payments) {
       const shouldBeUnpaid = payment.feeId.some(fee => {
         const feeConfig = fee as unknown as Fee; 
-        //default timestamp of creation
         const paymentDate = new Date(payment.createdAt);
         
         if (feeConfig.frequency === 'monthly') {

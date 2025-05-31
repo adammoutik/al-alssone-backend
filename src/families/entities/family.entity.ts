@@ -22,6 +22,9 @@ export class Family {
   @Prop({ default: 20 })
   discountPercentage: number;
 
+  @Prop({ type: Types.ObjectId, ref: 'Student', required: false })
+  discountChild?: Types.ObjectId; //marks which child is eligible for discount
+
 }
 
 
