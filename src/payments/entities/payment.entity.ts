@@ -44,6 +44,9 @@ export class Payment {
     @Prop({type: String, required: true })
     period: string; // "YYYY" (insurance) or "YYYY-MM" (monthly)
 
+    @Prop({type: Boolean, default: false })
+    isArchived: boolean;
+
     //status: 'paid' | 'unpaid'; // Status of the payment (paid or unpaid)
     @Prop({type: String, enum: PaymentStatus, default: PaymentStatus.unpaid })
     status: PaymentStatus; // Status of the payment (paid or unpaid)    

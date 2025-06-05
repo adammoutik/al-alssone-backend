@@ -6,9 +6,10 @@ import { Payment } from './entities/payment.entity';
 import { Student } from 'src/students/entities/student.entity';
 import { Family } from 'src/families/entities/family.entity';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Cron } from '@nestjs/schedule';
-
+import { PaymentStatus } from './entities/payment.entity';
+import { ArchivedPaymentsService } from '../archived-payments/archived-payments.service';
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -16,6 +17,7 @@ export class PaymentsService {
     @InjectModel(Student.name) private studentModel: Model<Student>,
     @InjectModel(Fee.name) private feeConfigModel: Model<Fee>,
     @InjectModel(Family.name) private familyModel: Model<Family>,
+    private readonly archivedPaymentsService: ArchivedPaymentsService,
   ) {}
   async create(createPaymentDto: CreatePaymentDto): Promise<Payment> {
  
@@ -130,7 +132,7 @@ export class PaymentsService {
     const now = new Date();
 
     for (const payment of payments) {
-      const shouldBeUnpaid = payment.feeId.some(fee => {
+      const isOverdue = payment.feeId.some(fee => {
         const feeConfig = fee as unknown as Fee; 
         const paymentDate = new Date(payment.createdAt);
         
@@ -148,9 +150,64 @@ export class PaymentsService {
         return false;
       });
 
-      if (shouldBeUnpaid && payment.status === 'paid') {
-        await this.paymentModel.findByIdAndUpdate(payment._id, { status: 'unpaid' });
+      if (isOverdue && payment.status === 'paid') {
+        // Archive the current paid payment
+        await this.archivePayment(payment._id.toString());
+        
+        // Create a new payment for the next period
+        const newPayment = new this.paymentModel({
+          studentId: payment.studentId,
+          feeId: payment.feeId,
+          familyId: payment.familyId,
+          amountPaid: payment.amountPaid,
+          discountApplied: payment.discountApplied,
+          period: this.calculateNextPeriod(payment.period, payment.feeId[0]),
+          status: PaymentStatus.unpaid // New payment starts as unpaid
+        });
+        
+        await newPayment.save();
       }
     }
+  }
+
+  async archivePayment(paymentId: string): Promise<void> {
+    const payment = await this.paymentModel.findById(paymentId);
+    if (!payment) {
+      throw new NotFoundException(`Payment with ID ${paymentId} not found`);
+    }
+
+    // Create archived payment
+    await this.archivedPaymentsService.create({
+      originalPaymentId: payment._id.toString(),
+      studentId: payment.studentId,
+      feeId: payment.feeId,
+      familyId: payment.familyId.toString(),
+      amountPaid: payment.amountPaid,
+      discountApplied: payment.discountApplied,
+      period: payment.period,
+      status: payment.status,
+      archivedAt: new Date()
+    });
+
+    // Mark the original payment as archived
+    await this.paymentModel.findByIdAndUpdate(paymentId, { 
+      isArchived: true,
+      archivedAt: new Date()
+    });
+  }
+
+  private async calculateNextPeriod(currentPeriod: string, feeId: Types.ObjectId): Promise<string> {
+    const fee = await this.feeConfigModel.findById(feeId);
+    const [year, month] = currentPeriod.split('-');
+    
+    if (fee?.frequency === 'monthly') {
+      const nextMonth = month === '12' ? '01' : String(Number(month) + 1).padStart(2, '0');
+      const nextYear = month === '12' ? String(Number(year) + 1) : year;
+      return `${nextYear}-${nextMonth}`;
+    } else if (fee?.frequency === 'annually') {
+      return String(Number(year) + 1);
+    }
+    
+    return currentPeriod;
   }
 }

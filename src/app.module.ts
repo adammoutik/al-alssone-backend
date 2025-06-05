@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth/jwt-auth.guard';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ArchivedPaymentsModule } from './archived-payments/archived-payments.module';
 
 @Module({
   imports: [ScheduleModule.forRoot(),
@@ -30,7 +31,8 @@ import { ScheduleModule } from '@nestjs/schedule';
   PaymentsModule,
   UsersModule,
   StudentsModule,
-  AuthModule,],
+  AuthModule,
+  ArchivedPaymentsModule,],
   controllers: [AppController],
   providers: [AppService
     // ,
