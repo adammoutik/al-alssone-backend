@@ -16,6 +16,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ArchivedPaymentsModule } from './archived-payments/archived-payments.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ConfigService } from '@nestjs/config';
     StudentsModule,
     AuthModule,
     ArchivedPaymentsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService

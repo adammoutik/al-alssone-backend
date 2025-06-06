@@ -13,6 +13,9 @@ export class Family {
     @Prop({ required: true })
   familyName: string;
 
+  @Prop({ required: true })
+  email: string;
+
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Student' }] })
   children: Types.ObjectId[];
 

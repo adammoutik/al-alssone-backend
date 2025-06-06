@@ -6,23 +6,8 @@ import { PaymentStatus } from "../../payments/entities/payment.entity";
   timestamps: true,
 })
 export class ArchivedPayment {
-  @Prop({type: SchemaTypes.ObjectId, required: true })
+  @Prop({type: SchemaTypes.ObjectId, required: true, ref: 'Payment' })
   originalPaymentId: string; // Reference to the original payment
-
-  @Prop({type: SchemaTypes.ObjectId, required: true })
-  studentId: string;
-
-  @Prop({type: [SchemaTypes.ObjectId], ref:'Fee', required: true })
-  feeId: Types.ObjectId[];
-
-  @Prop({type: SchemaTypes.ObjectId, ref:'Family', required: false })
-  familyId: Types.ObjectId;
-
-  @Prop({type: Number, required: true })
-  amountPaid: number;
-
-  @Prop({type: Boolean, required: false })
-  discountApplied: boolean;
 
   @Prop({type: String, required: true })
   period: string;

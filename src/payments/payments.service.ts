@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { Fee } from 'src/fees/entities/fee.entity';
@@ -10,6 +10,8 @@ import { Model, Types } from 'mongoose';
 import { Cron } from '@nestjs/schedule';
 import { PaymentStatus } from './entities/payment.entity';
 import { ArchivedPaymentsService } from '../archived-payments/archived-payments.service';
+import { NotificationsService } from '../notifications/notifications.service';
+
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -18,44 +20,43 @@ export class PaymentsService {
     @InjectModel(Fee.name) private feeConfigModel: Model<Fee>,
     @InjectModel(Family.name) private familyModel: Model<Family>,
     private readonly archivedPaymentsService: ArchivedPaymentsService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
   ) {}
+
   async create(createPaymentDto: CreatePaymentDto): Promise<Payment> {
- 
-
-    // Verify all fees exist and calculate total amount
-    const feesInPayment :Fee[] = await this.feeConfigModel.find({ _id: { $in: createPaymentDto.feeId } });
-    if (feesInPayment.length !== createPaymentDto.feeId.length) {
-      throw new NotFoundException('One or more fees not found');
-    }
-
-
-
-    let totalAmount = 0;
-    
-
-    totalAmount = feesInPayment.reduce((total, fee) => {
-      return total + fee.amount;
-    }, 0);
-
-    // Todo: should add the discount check 
-
-    const family = await this.familyModel.findById(createPaymentDto.familyId);
-    if (family && family.discountChild) {
-      const discountChild = await this.studentModel.findById(family.discountChild);
-      if (discountChild) {
-        totalAmount = totalAmount * (1 - family.discountPercentage / 100);
+    try {
+      const student = await this.studentModel.findById(createPaymentDto.studentId);
+      if (!student) {
+        throw new NotFoundException(`Student with ID ${createPaymentDto.studentId} not found`);
       }
+
+      const family = await this.familyModel.findById(student.familyId);
+      if (!family) {
+        throw new NotFoundException(`Family not found for student ${createPaymentDto.studentId}`);
+      }
+
+      const payment = await this.paymentModel.create({
+        ...createPaymentDto,
+        familyId: family._id,
+      });
+
+      // Create notifications for the payment
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7); // Set due date to 7 days from now
+      await this.notificationsService.createPaymentReminders(
+        payment._id.toString(),
+        family._id.toString(),
+        dueDate,
+      );
+
+      return payment;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to create payment');
     }
-
-    
-
-    const payment = new this.paymentModel({
-      ...createPaymentDto,
-      totalAmount,
-      status: 'paid', // Default to paid
-    });
-
-    return payment.save();
   }
 
   async findAll(): Promise<Payment[]> {
@@ -125,48 +126,74 @@ export class PaymentsService {
       .exec();
   }
 
-  //update the status of the payment to unpaid if the fee is overdue
+  private isSummerMonth(month: number): boolean {
+    // Assuming summer break is from month 6 (June) to month 8 (August)
+    return month >= 6 && month <= 8;
+  }
+
   @Cron('0 0 * * *')
   async updatePaymentStatuses(): Promise<void> {
-    const payments = await this.paymentModel.find().populate('feeId').exec();
-    const now = new Date();
+    try {
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-based
+      const currentYear = currentDate.getFullYear();
 
-    for (const payment of payments) {
-      const isOverdue = payment.feeId.some(fee => {
-        const feeConfig = fee as unknown as Fee; 
+      // Get all paid payments that are not archived
+      const payments = await this.paymentModel.find({ 
+        status: PaymentStatus.paid,
+        isArchived: false 
+      }).populate('feeId');
+
+      for (const payment of payments) {
         const paymentDate = new Date(payment.createdAt);
-        
-        if (feeConfig.frequency === 'monthly') {
-          const oneMonthLater = new Date(paymentDate);
-          oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-          return now > oneMonthLater;
-        }
-        if (feeConfig.frequency === 'annually') {
-          const oneYearLater = new Date(paymentDate);
-          oneYearLater.setMonth(oneYearLater.getMonth() + 1);
-          return now > oneYearLater;
-        }
+        const paymentMonth = paymentDate.getMonth() + 1;
+        const paymentYear = paymentDate.getFullYear();
 
-        return false;
-      });
+        let monthsDifference = (currentYear - paymentYear) * 12 + (currentMonth - paymentMonth);
 
-      if (isOverdue && payment.status === 'paid') {
-        // Archive the current paid payment
-        await this.archivePayment(payment._id.toString());
-        
-        // Create a new payment for the next period
-        const newPayment = new this.paymentModel({
-          studentId: payment.studentId,
-          feeId: payment.feeId,
-          familyId: payment.familyId,
-          amountPaid: payment.amountPaid,
-          discountApplied: payment.discountApplied,
-          period: this.calculateNextPeriod(payment.period, payment.feeId[0]),
-          status: PaymentStatus.unpaid // New payment starts as unpaid
-        });
-        
-        await newPayment.save();
+        // If we're in summer months don't count them for overdue status
+        if (this.isSummerMonth(currentMonth)) {
+          // If payment was due before summer, it's already overdue
+          if (monthsDifference > 0) {
+            // Archive the current payment
+            await this.archivePayment(payment._id.toString());
+
+            // Create a new payment for the next period
+            const newPayment = new this.paymentModel({
+              studentId: payment.studentId,
+              feeId: payment.feeId,
+              familyId: payment.familyId,
+              amountPaid: payment.amountPaid,
+              discountApplied: payment.discountApplied,
+              period: await this.calculateNextPeriod(payment.period, payment.feeId[0]),
+              status: PaymentStatus.unpaid
+            });
+            
+            await newPayment.save();
+          }
+        } else {
+          if (monthsDifference > 0) {
+            // Archive the current payment
+            await this.archivePayment(payment._id.toString());
+
+            // Create a new payment for the next period
+            const newPayment = new this.paymentModel({
+              studentId: payment.studentId,
+              feeId: payment.feeId,
+              familyId: payment.familyId,
+              amountPaid: payment.amountPaid,
+              discountApplied: payment.discountApplied,
+              period: await this.calculateNextPeriod(payment.period, payment.feeId[0]),
+              status: PaymentStatus.unpaid
+            });
+            
+            await newPayment.save();
+          }
+        }
       }
+    } catch (error) {
+      console.error('Error updating payment statuses:', error);
+      throw error;
     }
   }
 
@@ -176,20 +203,14 @@ export class PaymentsService {
       throw new NotFoundException(`Payment with ID ${paymentId} not found`);
     }
 
-    // Create archived payment
     await this.archivedPaymentsService.create({
       originalPaymentId: payment._id.toString(),
       studentId: payment.studentId,
-      feeId: payment.feeId,
-      familyId: payment.familyId.toString(),
-      amountPaid: payment.amountPaid,
-      discountApplied: payment.discountApplied,
       period: payment.period,
       status: payment.status,
       archivedAt: new Date()
     });
 
-    // Mark the original payment as archived
     await this.paymentModel.findByIdAndUpdate(paymentId, { 
       isArchived: true,
       archivedAt: new Date()
@@ -209,5 +230,13 @@ export class PaymentsService {
     }
     
     return currentPeriod;
+  }
+
+  async getStudentDetails(studentId: string): Promise<Student> {
+    const student = await this.studentModel.findById(studentId);
+    if (!student) {
+      throw new NotFoundException(`Student with ID ${studentId} not found`);
+    }
+    return student;
   }
 }

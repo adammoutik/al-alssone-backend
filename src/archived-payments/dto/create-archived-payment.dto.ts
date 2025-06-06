@@ -1,7 +1,6 @@
-import { IsString, IsNumber, IsBoolean, IsDate, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsDate, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { PaymentStatus } from '../../payments/entities/payment.entity';
-import { Types } from 'mongoose';
 
 export class CreateArchivedPaymentDto {
   @ApiProperty()
@@ -11,23 +10,6 @@ export class CreateArchivedPaymentDto {
   @ApiProperty()
   @IsString()
   studentId: string;
-
-  @ApiProperty({ type: [Types.ObjectId] })
-  feeId: Types.ObjectId[];
-
-  @ApiProperty({ required: false })
-  @IsString()
-  @IsOptional()
-  familyId?: string;
-
-  @ApiProperty()
-  @IsNumber()
-  amountPaid: number;
-
-  @ApiProperty({ required: false })
-  @IsBoolean()
-  @IsOptional()
-  discountApplied?: boolean;
 
   @ApiProperty()
   @IsString()

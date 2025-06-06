@@ -105,4 +105,14 @@ export class FamiliesService {
       throw new BadRequestException('Failed to add child to family');
     }
   }
+
+  async setDiscountChild(familyId: string, studentId: string): Promise<Family> {
+    const family = await this.familyModel.findById(familyId);
+    if (!family) {
+      throw new NotFoundException(`Family with ID ${familyId} not found`);
+    }
+
+    family.discountChild = new Types.ObjectId(studentId);
+    return family.save();
+  }
 }

@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { SchemaTypes, Types } from "mongoose";
+import { SchemaTypes, Types, Document } from "mongoose";
 
 
 export enum PaymentStatus{
@@ -11,7 +11,7 @@ export enum PaymentStatus{
 
 @Schema({
   timestamps: true,})
-export class Payment {
+export class Payment extends Document {
     /* 
   {
   _id: ObjectId,
@@ -23,8 +23,8 @@ export class Payment {
   createdAt: Date
 }
     */
-  //  @Prop({type: SchemaTypes.ObjectId, required: true })
-  //   _id: string; // ObjectId
+    @Prop({type: SchemaTypes.ObjectId, required: true })
+    declare _id: Types.ObjectId;
 
     @Prop({type: SchemaTypes.ObjectId, required: true })
     studentId: string; // Reference to students
