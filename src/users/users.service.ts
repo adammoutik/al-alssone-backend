@@ -45,6 +45,16 @@ export class UsersService {
     });
     return user;
   }
+
+  async findOneByEmailOrUsername(identifier: string) {
+    const user = await this.userModel.findOne({
+      $or: [
+        { email: identifier },
+        { username: identifier }
+      ]
+    });
+    return user;
+  }
   
 
   async comparePassword(password: string, hash: string) {

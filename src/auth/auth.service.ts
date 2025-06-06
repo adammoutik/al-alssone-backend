@@ -34,25 +34,25 @@ export class AuthService {
   }
 
   async login(createAuthDto: CreateAuthDto) {
-
-    const { email, password } = createAuthDto;
+    const { identifier, password } = createAuthDto;
     try {
-      const user = await this.usersService.findOneByEmail(email);
+      const user = await this.usersService.findOneByEmailOrUsername(identifier);
       if (!user) {
-        throw new UnauthorizedException('Invalid password Or email');
+        throw new UnauthorizedException('Invalid credentials');
       }
+
       const isPasswordValid = await this.usersService.comparePassword(password, user.password);
       if (!isPasswordValid) {
-        throw new UnauthorizedException('Invalid password Or email');
+        throw new UnauthorizedException('Invalid credentials');
       }
 
-      let token = await this.tokenModel.findOne({userId: user._id});
-      if(token){
+      let token = await this.tokenModel.findOne({ userId: user._id });
+      if (token) {
         await this.tokenModel.findByIdAndDelete(token._id);
       }
 
-      const { _id, firstName, lastName, role } = user;
-      const userData = { _id, firstName, lastName, email, role };
+      const { _id, firstName, lastName, role, email, username } = user;
+      const userData = { _id, firstName, lastName, email, username, role };
       const payload = { sub: user._id, user: userData };
 
       try {
@@ -60,6 +60,7 @@ export class AuthService {
         await this.tokenModel.create({ token: signedToken, userId: user._id });
         return {
           accesstoken: signedToken,
+          user: userData
         };
       } catch (error) {
         console.error('JWT Signing Error:', error);
