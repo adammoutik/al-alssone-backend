@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -52,19 +52,79 @@ export class UsersService {
     return isMatch;
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findAll(): Promise<User[]> {
+    try {
+      const users = await this.userModel.find().select('-password').exec();
+      return users;
+    } catch (error) {
+      throw new Error(`Failed to fetch users: ${error.message}`);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string): Promise<User> {
+    try {
+      const user = await this.userModel.findById(id).select('-password').exec();
+      if (!user) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+      return user;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new Error(`Failed to fetch user: ${error.message}`);
+    }
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    try {
+      // If password is being updated, hash it
+      if (updateUserDto.password) {
+        const salt = await bcrypt.genSalt(6);
+        updateUserDto.password = await bcrypt.hash(updateUserDto.password, salt);
+      }
+
+      // If email is being updated, check for uniqueness
+      if (updateUserDto.email) {
+        const existingUser = await this.userModel.findOne({ 
+          email: updateUserDto.email,
+          _id: { $ne: id }
+        });
+        if (existingUser) {
+          throw new ConflictException('Email already exists');
+        }
+      }
+
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(id, updateUserDto, { new: true })
+        .select('-password')
+        .exec();
+
+      if (!updatedUser) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new Error(`Failed to update user: ${error.message}`);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: string): Promise<User> {
+    try {
+      const deletedUser = await this.userModel.findByIdAndDelete(id).select('-password').exec();
+      if (!deletedUser) {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+      return deletedUser;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new Error(`Failed to delete user: ${error.message}`);
+    }
   }
 }
