@@ -2,9 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  
+  // Log the JWT secret (remove this in production)
+  console.log('JWT Secret:', configService.get('JWT'));
+  
   const config = new DocumentBuilder()
   .setTitle('School Payments API')
   .setDescription('Gestions des paiements scolaires')

@@ -6,13 +6,23 @@ import { HttpModule } from '@nestjs/axios';
 import { TokenSchema } from './schemas/token.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [JwtModule.register({
-    global: true,
-    secret: process.env.JWT,
-    signOptions: { expiresIn: '1d' },
-  }),UsersModule,HttpModule,MongooseModule.forFeature([{name:"Token",schema:TokenSchema}])],
+  imports: [
+    UsersModule,
+    HttpModule,
+    MongooseModule.forFeature([{name:"Token",schema:TokenSchema}]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT'),
+        signOptions: { expiresIn: '1d' },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
   controllers: [AuthController],
   providers: [AuthService],
 })

@@ -7,11 +7,12 @@ import * as Mongoose from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Token } from './schemas/token.schema';
 import { JwtService } from '@nestjs/jwt';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class AuthService {
 
-  constructor(private readonly httpService: HttpService,private usersService : UsersService, private jwtService: JwtService, @InjectModel(Token.name) private tokenModel : Mongoose.Model<Token>) {}
+  constructor(private readonly httpService: HttpService,private usersService : UsersService, private jwtService: JwtService, @InjectModel(Token.name) private tokenModel : Model<Token>) {}
   create(createAuthDto: CreateAuthDto) {
     return 'This action adds a new auth';
   }
@@ -33,6 +34,7 @@ export class AuthService {
   }
 
   async login(createAuthDto: CreateAuthDto) {
+
     const { email, password } = createAuthDto;
     try {
       const user = await this.usersService.findOneByEmail(email);
@@ -44,20 +46,25 @@ export class AuthService {
         throw new UnauthorizedException('Invalid password Or email');
       }
 
-      let token = await this.tokenModel.findOne({userId:user._id});
+      let token = await this.tokenModel.findOne({userId: user._id});
       if(token){
         await this.tokenModel.findByIdAndDelete(token._id);
       }
-      const { _id, firstName, lastName, role } = user;
-      const userData = { _id, firstName, lastName, email, role }
-      const payload = {sub:user._id,user:userData}
-      const signedToken = await this.jwtService.signAsync(payload);
 
-   
-      await this.tokenModel.create({ token: signedToken, userId: user._id });
-      return {
-        accesstoken: signedToken,
-    }
+      const { _id, firstName, lastName, role } = user;
+      const userData = { _id, firstName, lastName, email, role };
+      const payload = { sub: user._id, user: userData };
+
+      try {
+        const signedToken = await this.jwtService.signAsync(payload);
+        await this.tokenModel.create({ token: signedToken, userId: user._id });
+        return {
+          accesstoken: signedToken,
+        };
+      } catch (error) {
+        console.error('JWT Signing Error:', error);
+        throw new Error('Failed to generate authentication token');
+      }
     } catch (error) {
       throw error;
     }
