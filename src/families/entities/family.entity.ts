@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { SchemaTypes, Types } from "mongoose";
+import { SchemaTypes, Types, Document } from "mongoose";
 
 
 
@@ -30,5 +30,7 @@ export class Family {
 
 }
 
+
+export interface FamilyDocument extends Family, Document {}
 
 export const FamilySchema = SchemaFactory.createForClass(Family);

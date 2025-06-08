@@ -14,7 +14,7 @@ export class Notification {
   @Prop({ type: SchemaTypes.ObjectId, required: true, ref: 'Payment' })
   paymentId: string;
 
-  @Prop({ type: SchemaTypes.ObjectId, required: true, ref: 'Family' })
+  @Prop({ type: SchemaTypes.ObjectId, required: false, ref: 'Family' })
   familyId: string;
 
   @Prop({ type: String, enum: NotificationStatus, default: NotificationStatus.PENDING })

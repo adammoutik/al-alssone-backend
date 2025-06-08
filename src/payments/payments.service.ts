@@ -6,7 +6,7 @@ import { Payment } from './entities/payment.entity';
 import { Student } from 'src/students/entities/student.entity';
 import { Family } from 'src/families/entities/family.entity';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, Types, Document } from 'mongoose';
 import { Cron } from '@nestjs/schedule';
 import { PaymentStatus } from './entities/payment.entity';
 import { ArchivedPaymentsService } from '../archived-payments/archived-payments.service';
@@ -37,13 +37,17 @@ export class PaymentsService {
         throw new NotFoundException(`Student with ID ${createPaymentDto.studentId} not found`);
       }
       this.logger.log(`Found student: ${student._id}`);
-
-      const family = await this.familyModel.findById(student.familyId);
+      let family;
+      if(student.familyId){
+        family = await this.familyModel.findById(student.familyId) as Family & Document;
+      }
       if (!family) {
         this.logger.warn(`Family not found for student ${createPaymentDto.studentId}.`);
-        throw new NotFoundException(`Family not found for student ${createPaymentDto.studentId}`);
+      }else{
+        this.logger.log(`Found family: ${family._id}`);
       }
-      this.logger.log(`Found family: ${family._id}`);
+      
+    
 
       // Calculate amountPaid from fees
       const fees = await this.feeConfigModel.find({ _id: { $in: createPaymentDto.feeId } });
@@ -57,22 +61,34 @@ export class PaymentsService {
       this.logger.log(`Calculated period: ${calculatedPeriod}`);
 
       this.logger.log('Creating payment record...');
-      const payment = await this.paymentModel.create({
-        ...createPaymentDto,
-        familyId: family._id,
-        amountPaid: calculatedAmountPaid,
-        period: calculatedPeriod,
-      });
+
+      let payment;
+      if(family){
+         payment = await this.paymentModel.create({
+          ...createPaymentDto,
+          familyId: family._id || null,
+          amountPaid: calculatedAmountPaid,
+          period: calculatedPeriod,
+        });
+      }else{
+         payment = await this.paymentModel.create({
+          ...createPaymentDto,
+          amountPaid: calculatedAmountPaid,
+          period: calculatedPeriod,
+        });
+      }
       this.logger.log(`Payment record created with ID: ${payment._id}`);
 
       // Create notifications for the payment
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 7); // Set due date to 7 days from now
-      await this.notificationsService.createPaymentReminders(
-        payment._id.toString(),
-        family._id.toString(),
-        dueDate,
-      );
+      if(family){
+        await this.notificationsService.createPaymentReminders(
+          payment._id.toString(),
+          family._id.toString() || "",
+          dueDate,
+        );
+      }
       this.logger.log('Payment reminders created successfully.');
 
       return payment;
@@ -267,17 +283,10 @@ export class PaymentsService {
   }
 
   private async calculatePeriod(createdAt: Date, feeId: Types.ObjectId): Promise<string> {
-    const fee = await this.feeConfigModel.findById(feeId);
     const year = createdAt.getFullYear();
     const month = (createdAt.getMonth() + 1).toString().padStart(2, '0');
+    const day = createdAt.getDate().toString().padStart(2, '0');
 
-    if (fee?.frequency === 'monthly') {
-      return `${year}-${month}`;
-    } else if (fee?.frequency === 'annually') {
-      return `${year}`;
-    }
-
-    // Default to YYYY-MM if frequency is not recognized, or handle error
-    return `${year}-${month}`;
+    return `${month}-${day}-${year}`;
   }
 }
