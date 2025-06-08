@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { Fee } from 'src/fees/entities/fee.entity';
@@ -14,6 +14,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
     @InjectModel(Student.name) private studentModel: Model<Student>,
@@ -26,20 +28,42 @@ export class PaymentsService {
 
   async create(createPaymentDto: CreatePaymentDto): Promise<Payment> {
     try {
+      this.logger.log('Attempting to create a new payment.');
+      this.logger.debug(`Received DTO: ${JSON.stringify(createPaymentDto)}`);
+
       const student = await this.studentModel.findById(createPaymentDto.studentId);
       if (!student) {
+        this.logger.warn(`Student with ID ${createPaymentDto.studentId} not found.`);
         throw new NotFoundException(`Student with ID ${createPaymentDto.studentId} not found`);
       }
+      this.logger.log(`Found student: ${student._id}`);
 
       const family = await this.familyModel.findById(student.familyId);
       if (!family) {
+        this.logger.warn(`Family not found for student ${createPaymentDto.studentId}.`);
         throw new NotFoundException(`Family not found for student ${createPaymentDto.studentId}`);
       }
+      this.logger.log(`Found family: ${family._id}`);
 
+      // Calculate amountPaid from fees
+      const fees = await this.feeConfigModel.find({ _id: { $in: createPaymentDto.feeId } });
+      if (fees.length !== createPaymentDto.feeId.length) {
+        throw new NotFoundException('One or more fees not found');
+      }
+      const calculatedAmountPaid = fees.reduce((sum, fee) => sum + fee.amount, 0);
+      this.logger.log(`Calculated amount paid from fees: ${calculatedAmountPaid}`);
+
+      const calculatedPeriod = await this.calculatePeriod(new Date(createPaymentDto.createdAt), createPaymentDto.feeId[0]);
+      this.logger.log(`Calculated period: ${calculatedPeriod}`);
+
+      this.logger.log('Creating payment record...');
       const payment = await this.paymentModel.create({
         ...createPaymentDto,
         familyId: family._id,
+        amountPaid: calculatedAmountPaid,
+        period: calculatedPeriod,
       });
+      this.logger.log(`Payment record created with ID: ${payment._id}`);
 
       // Create notifications for the payment
       const dueDate = new Date();
@@ -49,9 +73,11 @@ export class PaymentsService {
         family._id.toString(),
         dueDate,
       );
+      this.logger.log('Payment reminders created successfully.');
 
       return payment;
     } catch (error) {
+      this.logger.error(`Failed to create payment: ${error.message}`, error.stack);
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -238,5 +264,20 @@ export class PaymentsService {
       throw new NotFoundException(`Student with ID ${studentId} not found`);
     }
     return student;
+  }
+
+  private async calculatePeriod(createdAt: Date, feeId: Types.ObjectId): Promise<string> {
+    const fee = await this.feeConfigModel.findById(feeId);
+    const year = createdAt.getFullYear();
+    const month = (createdAt.getMonth() + 1).toString().padStart(2, '0');
+
+    if (fee?.frequency === 'monthly') {
+      return `${year}-${month}`;
+    } else if (fee?.frequency === 'annually') {
+      return `${year}`;
+    }
+
+    // Default to YYYY-MM if frequency is not recognized, or handle error
+    return `${year}-${month}`;
   }
 }

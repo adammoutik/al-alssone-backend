@@ -220,7 +220,7 @@ export class NotificationsService {
 
   async sendPaymentReceipt(paymentId: string): Promise<void> {
     try {
-      const payment = await this.paymentsService.findOne(paymentId) as Payment;
+      const payment = await this.paymentsService.findOne(paymentId) as PaymentWithId;
       const family = await this.familiesService.findOne(payment.familyId.toString());
       const student = await this.paymentsService.getStudentDetails(payment.studentId.toString());
 

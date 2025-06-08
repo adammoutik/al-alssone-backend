@@ -11,7 +11,7 @@ export enum PaymentStatus{
 
 @Schema({
   timestamps: true,})
-export class Payment extends Document {
+export class Payment {
     /* 
   {
   _id: ObjectId,
@@ -23,9 +23,6 @@ export class Payment extends Document {
   createdAt: Date
 }
     */
-    @Prop({type: SchemaTypes.ObjectId, required: true })
-    declare _id: Types.ObjectId;
-
     @Prop({type: SchemaTypes.ObjectId, required: true })
     studentId: string; // Reference to students
 
