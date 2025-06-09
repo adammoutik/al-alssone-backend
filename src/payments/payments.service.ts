@@ -46,8 +46,6 @@ export class PaymentsService {
       }else{
         this.logger.log(`Found family: ${family._id}`);
       }
-      
-    
 
       // Calculate amountPaid from fees
       const fees = await this.feeConfigModel.find({ _id: { $in: createPaymentDto.feeId } });
@@ -57,7 +55,9 @@ export class PaymentsService {
       const calculatedAmountPaid = fees.reduce((sum, fee) => sum + fee.amount, 0);
       this.logger.log(`Calculated amount paid from fees: ${calculatedAmountPaid}`);
 
-      const calculatedPeriod = await this.calculatePeriod(new Date(createPaymentDto.createdAt), createPaymentDto.feeId[0]);
+      // Ensure createdAt is a valid Date
+      const paymentDate = createPaymentDto.createdAt ? new Date(createPaymentDto.createdAt) : new Date();
+      const calculatedPeriod = await this.calculatePeriod(paymentDate, createPaymentDto.feeId[0]);
       this.logger.log(`Calculated period: ${calculatedPeriod}`);
 
       this.logger.log('Creating payment record...');
@@ -69,18 +69,20 @@ export class PaymentsService {
           familyId: family._id || null,
           amountPaid: calculatedAmountPaid,
           period: calculatedPeriod,
+          createdAt: paymentDate
         });
       }else{
          payment = await this.paymentModel.create({
           ...createPaymentDto,
           amountPaid: calculatedAmountPaid,
           period: calculatedPeriod,
+          createdAt: paymentDate
         });
       }
       this.logger.log(`Payment record created with ID: ${payment._id}`);
 
       // Create notifications for the payment
-      const dueDate = new Date();
+      const dueDate = new Date(paymentDate);
       dueDate.setDate(dueDate.getDate() + 7); // Set due date to 7 days from now
       if(family){
         await this.notificationsService.createPaymentReminders(
@@ -283,10 +285,14 @@ export class PaymentsService {
   }
 
   private async calculatePeriod(createdAt: Date, feeId: Types.ObjectId): Promise<string> {
+    const fee = await this.feeConfigModel.findById(feeId);
     const year = createdAt.getFullYear();
     const month = (createdAt.getMonth() + 1).toString().padStart(2, '0');
-    const day = createdAt.getDate().toString().padStart(2, '0');
 
-    return `${month}-${day}-${year}`;
+    if (fee?.frequency === 'annually') {
+      return year.toString();
+    }
+    
+    return `${year}-${month}`;
   }
 }

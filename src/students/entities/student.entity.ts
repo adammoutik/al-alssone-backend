@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Types } from "mongoose";
-
+import { Document } from 'mongoose';
 
 /**
  *  Nombre des niveaux : 
@@ -10,7 +10,7 @@ PS : 1 classe
 MS : 1 Classe
 GS : 1 Classe
  Primaire : 
-CP: 1 Classe 
+CP: 1 classe 
 CE1 : 1Classe
 CE2 : 1 Classe
 CM1 : 1 Classe
@@ -22,24 +22,22 @@ CE6 : 1Classe
  * 
  */
 
-
-
 export enum Niveau {
-    TPS = 'TPS',
-    PS = 'PS',
-    MS = 'MS',
-    GS = 'GS',
-    CP = 'CP',
-    CE1 = 'CE1',
-    CE2 = 'CE2',
-    CM1 = 'CM1',
-    CM2 = 'CM2',
-    CE6 = 'CE6'
+  TPS = 'TPS',
+  PS = 'PS',
+  MS = 'MS',
+  GS = 'GS',
+  CP = 'CP',
+  CE1 = 'CE1',
+  CE2 = 'CE2',
+  CM1 = 'CM1',
+  CM2 = 'CM2',
+  CE6 = 'CE6'
 }
 
 @Schema({
   timestamps: true})
-export class Student {
+export class Student{
 
 /*
 {
@@ -93,6 +91,11 @@ parentPhoneNumber: number; // Parent's phone number
 @Prop({type: Boolean, default: true })
 isActive?: boolean; 
 
+@Prop({ required: true, unique: true })
+studentCode: string;
+
+@Prop({ required: true, default: Date.now })
+createdAt: Date;
 
 }
 

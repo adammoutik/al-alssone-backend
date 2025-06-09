@@ -1,26 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import { Student } from './entities/student.entity';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import { StudentCodeService } from './services/student-code.service';
 
 @Injectable()
 export class StudentsService {
   constructor(
-    @InjectModel(Student.name) private studentModel: mongoose.Model<Student>
+    @InjectModel(Student.name) private studentModel: mongoose.Model<Student>,
+    private readonly studentCodeService: StudentCodeService,
   ) {}
 
-  async create(createStudentDto: CreateStudentDto): Promise<Student> {
-    try {
-      const createdStudent = await this.studentModel.create({
-        ...createStudentDto,
-        _id: new mongoose.Types.ObjectId(),
-      });
-      return createdStudent;
-    } catch (error) {
-      throw new Error(`Failed to create student: ${error.message}`);
-    }
+  async create(createStudentDto: CreateStudentDto) {
+    const studentCode = await this.studentCodeService.generateUniqueStudentCode();
+    const createdStudent = new this.studentModel({
+      ...createStudentDto,
+      studentCode,
+    });
+    return createdStudent.save();
   }
 
   async findAll(): Promise<Student[]> {
