@@ -4,6 +4,10 @@ import { Types } from "mongoose";
 import { PaymentStatus } from "../entities/payment.entity";
 
 export class CreatePaymentDto {
+  @IsString()
+  @IsOptional()
+  readonly _id: string;
+  
     @IsString()
     studentId: string;
   

@@ -1,13 +1,10 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { SchemaTypes, Types, Document } from "mongoose";
 
-
-export enum PaymentStatus{
+export enum PaymentStatus {
     paid = 'paid',
-    unpaid = 'unpaid'
-}
-
-
+    unpaid = 'unpaid',
+  }
 
 @Schema({
   timestamps: true,})

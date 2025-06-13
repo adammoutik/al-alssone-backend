@@ -11,7 +11,7 @@ export class StudentCodeService {
   constructor(
     @InjectModel(Student.name) private studentModel: Model<Student>,
   ) {
-    // Limite de 5 tentatives par IP toutes les 15 minutes
+    // 5 tentatives par IP toutes les 15 minutes
     this.rateLimiter = new RateLimiterMemory({
       points: 5,
       duration: 15 * 60, // 15 minutes
@@ -22,13 +22,13 @@ export class StudentCodeService {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const numbers = '0123456789';
     
-    // Générer 2 lettres aléatoires
+    // 2 lettres aleatoire
     let code = '';
     for (let i = 0; i < 2; i++) {
       code += letters.charAt(Math.floor(Math.random() * letters.length));
     }
     
-    // Générer 7 chiffres aléatoires
+    // 7 chiffres aléatoires
     for (let i = 0; i < 7; i++) {
       code += numbers.charAt(Math.floor(Math.random() * numbers.length));
     }
@@ -62,19 +62,17 @@ export class StudentCodeService {
   }
 
   async getStudentPaymentsByCode(studentCode: string, ip: string) {
-    // Vérifier le rate limiting
+
     const isAllowed = await this.validateRateLimit(ip);
     if (!isAllowed) {
       throw new Error('Too many attempts. Please try again later.');
     }
 
-    // Vérifier si le code étudiant existe
     const student = await this.studentModel.findOne({ studentCode });
     if (!student) {
       throw new Error('Invalid student code');
     }
 
-    // Retourner l'historique des paiements avec les détails des frais
     return this.studentModel.aggregate([
       { $match: { studentCode } },
       {
