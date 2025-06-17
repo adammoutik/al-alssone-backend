@@ -8,11 +8,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Token } from './schemas/token.schema';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    @InjectModel(Token.name) private tokenModel: Model<Token>
+  ) {}
 
-  constructor(private readonly httpService: HttpService,private usersService : UsersService, private jwtService: JwtService, @InjectModel(Token.name) private tokenModel : Model<Token>) {}
   create(createAuthDto: CreateAuthDto) {
     return 'This action adds a new auth';
   }
@@ -46,21 +53,34 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      let token = await this.tokenModel.findOne({ userId: user._id });
-      if (token) {
-        await this.tokenModel.findByIdAndDelete(token._id);
-      }
+      // Delete any existing tokens for this user
+      await this.tokenModel.deleteMany({ userId: user._id });
 
       const { _id, firstName, lastName, role, email, username } = user;
       const userData = { _id, firstName, lastName, email, username, role };
       const payload = { sub: user._id, user: userData };
 
       try {
-        const signedToken = await this.jwtService.signAsync(payload);
-        await this.tokenModel.create({ token: signedToken, userId: user._id });
+        const expiresIn = '1d';
+        const signedToken = await this.jwtService.signAsync(payload, {
+          expiresIn,
+        });
+
+        // Calculate expiration date
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 1); // 1 day from now
+
+        // Store token in database
+        await this.tokenModel.create({
+          token: signedToken,
+          userId: user._id,
+          expiresAt,
+        });
+
         return {
-          accesstoken: signedToken,
-          user: userData
+          accessToken: signedToken,
+          user: userData,
+          expiresIn,
         };
       } catch (error) {
         console.error('JWT Signing Error:', error);
@@ -70,5 +90,27 @@ export class AuthService {
       throw error;
     }
   }
-  
+
+  async validateToken(token: string): Promise<boolean> {
+    try {
+      const tokenDoc = await this.tokenModel.findOne({ token });
+      if (!tokenDoc) {
+        return false;
+      }
+
+      // Check if token is expired
+      if (tokenDoc.expiresAt < new Date()) {
+        await this.tokenModel.deleteOne({ _id: tokenDoc._id });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async logout(token: string): Promise<void> {
+    await this.tokenModel.deleteOne({ token });
+  }
 }

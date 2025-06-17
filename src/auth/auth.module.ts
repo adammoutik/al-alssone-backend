@@ -14,14 +14,7 @@ import { ConfigModule } from '@nestjs/config';
     UsersModule,
     HttpModule,
     MongooseModule.forFeature([{name:"Token",schema:TokenSchema}]),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT'),
-        signOptions: { expiresIn: '1d' },
-      }),
-      inject: [ConfigService],
-    }),
+    JwtModule,
   ],
   controllers: [AuthController],
   providers: [AuthService],
