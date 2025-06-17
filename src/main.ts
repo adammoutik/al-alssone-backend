@@ -3,6 +3,9 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
+
+
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
