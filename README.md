@@ -2,6 +2,10 @@
 
 A REST API built with [NestJS](https://nestjs.com/) for managing school fee payments — tracking families, students, fees, payments, and payment archives, with authentication and automated notifications.
 
+## Related Repositories
+
+- **Frontend:** [al-alssone-frontend](https://github.com/adammoutik/al-alssone-frontend)
+
 ## Features
 
 - **Authentication** — JWT-based login and user management, with route protection via guards
